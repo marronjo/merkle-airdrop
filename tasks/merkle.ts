@@ -8,17 +8,34 @@ type MerkleInput = {
 }
 
 task('read-merkle-input').setAction(async (taskArgs, hre) => {
+    const coder = hre.ethers.AbiCoder.defaultAbiCoder();
+
     const input = inputJson as MerkleInput;
+    let leaves: string[] = [];
 
     for(const value of input.values){
-        console.log('1. ' + input.types[0] + ': ' + value[0]);
-        console.log('2. ' + input.types[1] + ': ' + value[1]);
-
-        const coder = hre.ethers.AbiCoder.defaultAbiCoder();
-        const output = coder.encode([input.types[0], input.types[1]], [value[0], value[1]]);
-
+        const output = coder.encode(input.types, value);
         const leaf = hre.ethers.keccak256(hre.ethers.keccak256(output));
-        console.log('3. Leaf : ' + leaf);
-        console.log('');
+        leaves.push(leaf);
     }
+
+    console.log('Merkle Root : ' + hashLeaves(leaves, hre));
 });
+
+// recurse through each level in the tree
+// hash leaves together until a single 'root' is left
+const hashLeaves = (leaves: string[], hre: any) : string => {
+    if(leaves.length === 1) return leaves[0];
+
+    let level: string[] = [];
+
+    for(let i = 0; i < leaves.length; i += 2){
+        const [v0, v1] = [leaves[i], i + 1 < leaves.length ? leaves[i+1] : 0]; 
+        const [lo, hi] = BigInt(v0) < BigInt(v1) ? [v0, v1] : [v1, v0];
+        const combined = hre.ethers.solidityPacked(['bytes32', 'bytes32'], [lo, hi]);
+        const hash = hre.ethers.keccak256(combined);
+        level.push(hash);
+    }
+
+    return hashLeaves(level, hre);
+}
