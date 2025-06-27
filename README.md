@@ -18,6 +18,7 @@ pnpm hardhat TASK ARGS
 
 supported tasks:
 - merkle-tree : prints entire tree
+- merkle-leaves : prints all leaves in the tree
 - merkle-root : prints root
 - merkle-proof (index) : prints proof for given number
 - merkle-proofs : prints proofs for all leaves in the tree

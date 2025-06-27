@@ -4,6 +4,7 @@ import inputJson from './target/input.json';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 enum Action {
+    MERKLE_LEAVES,  //print all leaves
     MERKLE_ROOT,    //print just the root
     MERKLE_PROOF,   //print single proof
     MERKLE_PROOFS,  //print all proofs
@@ -17,6 +18,10 @@ type MerkleInput = {
 
 task('merkle-tree').setAction(async (_, hre) => {
     handleTask(hre, Action.MERKLE_TREE, 0);
+});
+
+task('merkle-leaves').setAction(async (_, hre) => {
+    handleTask(hre, Action.MERKLE_LEAVES, 0);
 });
 
 task('merkle-root').setAction(async (_, hre) => {
@@ -39,6 +44,10 @@ const handleTask = (hre: HardhatRuntimeEnvironment, action: Action, index: numbe
     const root: string = generateMerkleRoot(leaves, levels, hre);
 
     switch(action){
+        case Action.MERKLE_LEAVES:
+            console.log('--- Merkle Leaves ---');
+            console.log(leaves);
+            return;
         case Action.MERKLE_ROOT:
             console.log('--- Merkle Root ---');
             console.log(root);
