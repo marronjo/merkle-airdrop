@@ -3,34 +3,73 @@ import { task } from 'hardhat/config'
 import inputJson from './target/input.json';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
+enum Action {
+    MERKLE_ROOT,    //print just the root
+    MERKLE_PROOF,   //print single proof
+    MERKLE_PROOFS,  //print all proofs
+    MERKLE_TREE,    //print entire tree
+}
+
 type MerkleInput = {
     types: string[];
     values: string[][];
 }
 
-task('create-merkle-tree').setAction(async (taskArgs, hre) => {
-    const coder = hre.ethers.AbiCoder.defaultAbiCoder();
+task('merkle-tree').setAction(async (_, hre) => {
+    handleTask(hre, Action.MERKLE_TREE, 0);
+});
+
+task('merkle-root').setAction(async (_, hre) => {
+    handleTask(hre, Action.MERKLE_ROOT, 0);
+});
+
+task('merkle-proof').addPositionalParam("index").setAction(async (taskArgs, hre) => {
+    handleTask(hre, Action.MERKLE_PROOF, +taskArgs.index);
+});
+
+task('merkle-proofs').setAction(async (_, hre) => {
+    handleTask(hre, Action.MERKLE_PROOFS, 0);
+});
+
+const handleTask = (hre: HardhatRuntimeEnvironment, action: Action, index: number) => {
     const input = inputJson as MerkleInput;
 
-    let leaves: string[] = input.values.map(entry => {
-        const output = coder.encode(input.types, entry);
+    const leaves: string[] = hashLeaves(input.values, input.types, hre);
+    const levels: string[][] = [leaves];
+    const root: string = generateMerkleRoot(leaves, levels, hre);
+
+    switch(action){
+        case Action.MERKLE_ROOT:
+            console.log('--- Merkle Root ---');
+            console.log(root);
+            return;
+        case Action.MERKLE_PROOF:
+            console.log('--- Proof ' + index + ' ---');
+            console.log(getProof(levels, index, hre));
+            return;
+        case Action.MERKLE_PROOFS:
+            console.log('--- Proofs ---');
+            for(let i = 0; i < leaves.length; i++){
+                console.log('Proof : ' + i);
+                console.log(getProof(levels, i, hre));
+            }
+            return;
+        case Action.MERKLE_TREE:
+            console.log('--- Merkle Tree ---');
+            console.log(levels);
+            return;
+        default:
+            console.error("Unknown action!")
+    }
+}
+
+const hashLeaves = (values: string[][], types: string[], hre: HardhatRuntimeEnvironment) : string[] => {
+    const coder = hre.ethers.AbiCoder.defaultAbiCoder();
+    return values.map(entry => {
+        const output = coder.encode(types, entry);
         return hre.ethers.keccak256(hre.ethers.keccak256(output));
     });
-
-    let levels: string[][] = [leaves];
-
-    console.log('\n--- Merkle Root ---')
-    console.log(generateMerkleRoot(leaves, levels, hre));
-
-    console.log('\n--- Merkle Tree ---');
-    console.log(levels);
-
-    console.log('\n--- Proofs ---');
-    for(let i = 0; i < leaves.length - 1; i++){
-        console.log('Proof : ' + i);
-        console.log(getProof(levels, i));
-    }
-});
+}
 
 // recurse through each level in the tree
 // hash leaves together until a single 'root' is left
@@ -46,12 +85,11 @@ const generateMerkleRoot = (leaves: string[], levels: string[][], hre: HardhatRu
         const hash = hre.ethers.keccak256(combined);
         level.push(hash);
     }
-
     levels.push(level);
     return generateMerkleRoot(level, levels, hre);
 }
 
-const getProof = (levels: string[][], index: number) : string[] => {
+const getProof = (levels: string[][], index: number, hre: HardhatRuntimeEnvironment) : string[] => {
     if(levels.length === 1 || index > levels[0].length - 1) return [];
 
     let proof : string[] = [];
@@ -59,9 +97,12 @@ const getProof = (levels: string[][], index: number) : string[] => {
 
     for(let i = 0; i < levels.length - 1; i++){
         let sibling = currentIdx % 2 == 0 ? currentIdx + 1 : currentIdx - 1;
-        proof.push(levels[i][sibling]);
+        if(sibling >= levels[i].length){
+            proof.push(hre.ethers.ZeroHash);
+        } else {
+            proof.push(levels[i][sibling]);
+        }
         currentIdx = Math.floor(currentIdx/2);
     }
-
     return proof;
 }
