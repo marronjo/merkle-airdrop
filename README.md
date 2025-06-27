@@ -1,6 +1,12 @@
-### 🌳 Merkle Airdrop 
+## 🌳 Merkle Airdrop
 
 🪂 Using Merkle Trees to check user inclusion in whitelist for a token airdrop 🪂
+
+### Installation
+
+```bash
+pnpm install
+```
 
 ### Usage Instructions
 tasks read from : `tasks/target/input.json`
