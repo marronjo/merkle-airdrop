@@ -27,6 +27,13 @@ contract MerkleAirdropTest is Test {
         token.mint(address(merkleAirdrop), 1e50);
 
         (user, userPrivKey) = makeAddrAndKey("user");
+        makeAddrAndKey("user1");
+        makeAddrAndKey("user2");
+        makeAddrAndKey("user3");
+        makeAddrAndKey("user4"); //0x90561e5Cd8025FA6F52d849e8867C14A77C94BA0
+        makeAddrAndKey("user5"); //0x22068447936722AcB3481F41eE8a0B7125526D55
+        makeAddrAndKey("user6"); //0xc1268511E6bC61c44C096f7F25B813Bd5531b64a
+        makeAddrAndKey("user7"); //0xD2D67024f7cA52d0F49d02329DDFD1b3Edae9351
     }
 
     function testUserCanClaim() public {
@@ -36,5 +43,13 @@ contract MerkleAirdropTest is Test {
         merkleAirdrop.claim(user, 25e18, userProof);
 
         assertEq(token.balanceOf(user), 25e18);
+
+        makeAddrAndKey("user1");
+        makeAddrAndKey("user2");
+        makeAddrAndKey("user3");
+        makeAddrAndKey("user4");
+        makeAddrAndKey("user5");
+        makeAddrAndKey("user6");
+        makeAddrAndKey("user7");
     }
 }
